@@ -1,0 +1,64 @@
+pip install pyodbc
+pip install aiosqlite
+pip install fastapi uvicorn sqlalchemy pydantic
+
+
+/*http://127.0.0.1:8000/docs */
+/*uvicorn main:app --reload */
+/*streamlit run dashboard.py*/
+
+
+Rodando a API
+
+No terminal, dentro do venv:
+
+uvicorn main:app --reload
+
+
+Saída esperada:
+
+Uvicorn running on http://127.0.0.1:8000
+Application startup complete.
+
+    -Links importantes
+
+Swagger UI (testar rotas interativamente):
+http://127.0.0.1:8000/docs
+
+Rota raiz:
+http://127.0.0.1:8000/
+
+Observação: http://127.0.0.1:8000/dados/ funciona apenas via GET ou POST conforme definido.
+
+Simulando sensores (simulador.py)
+import requests
+import random
+import time
+
+URL = "http://127.0.0.1:8000/dados/"
+
+while True:
+    sensor_id = random.randint(1, 3)
+    velocidade = round(random.uniform(30, 130), 2)
+
+    response = requests.post(URL, params={
+        "sensor_id": sensor_id,
+        "velocidade": velocidade
+    })
+
+    print(f"Sensor {sensor_id} registrou {velocidade} km/h → Resposta da API:", response.json())
+    time.sleep(2)
+
+🔹 Executando o simulador
+
+Em outro terminal mantendo a API rodando:
+
+python simulador.py
+    -envia dados aleatórios a cada 2 segundos.
+    -no terminal respostas da API indicando que o dado foi gravado.
+    -dados gravados vão para velocidades.db.
+
+Conferindo os dados
+    -Pelo navegador: GET /dados/ em /docs
+    -Pelo SQLite: abra velocidades.db no DB Browser for SQLite → tabela velocidades.
+
