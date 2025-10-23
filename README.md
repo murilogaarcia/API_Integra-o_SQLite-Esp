@@ -69,5 +69,5 @@ pip install fastapi uvicorn sqlalchemy pydantic streamlit plotly requests pytz
 
 3️⃣ Inicie a API
 uvicorn main:app --reload
-Acesse em: http://127.0.0.1:8000
-Teste as rotas em: http://127.0.0.1:8000/docs
+Acesse em: http://IP-DA-MAQUINA
+Teste as rotas em: http://IP-DA-MAQUINA/docs
