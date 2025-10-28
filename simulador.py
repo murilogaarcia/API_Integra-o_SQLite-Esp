@@ -9,15 +9,17 @@ URL = "http://127.0.0.1:8000/dados/"
 
 while True:
      sensor_id = 1
-     velocidade = round(random.uniform(30, 120), 2)
+     velocidade = round(random.uniform(30, 150), 2)
+     aceleracao = round(random.uniform(10, 80), 2)
 
      response = requests.post(URL, params={
          "sensor_id": sensor_id,
-         "velocidade": velocidade
+         "velocidade": velocidade,
+         "aceleracao": aceleracao
      })
 
      print(response.json())
-     time.sleep(7)  # envia a cada 2 segundos
+     time.sleep(7)  # envia a cada 7 segundos
 
 
 
@@ -27,28 +29,28 @@ while True:
 '''
 import network
 import time
-import urequests  # biblioteca do MicroPython para requisições HTTP
+import urequests
 from machine import Pin
 
-# Configurando wifi
-SSID = "nome_rede"         # coloque o nome da sua rede Wi-Fi
-PASSWORD = "senha_rede"    # e a senha
-
-# configurando API
-URL = "http://192.168.0.100:8000/dados/"  # IP do PC rodando a API FastAPI
+# ======= CONFIGURAÇÕES =======
+SSID = "nome_rede"
+PASSWORD = "senha_rede"
+URL = "http://192.168.0.100:8000/dados/"
 SENSOR_ID = 1
 
-# Configurando sensores
+# 4 piezos (em metros, igualmente espaçados)
 piesos = [
     Pin(4, Pin.IN),   # Piezo 1
     Pin(5, Pin.IN),   # Piezo 2
     Pin(18, Pin.IN),  # Piezo 3
-    Pin(19, Pin.IN),  # Piezo 4
-    Pin(21, Pin.IN)   # Piezo 5
+    Pin(19, Pin.IN)   # Piezo 4
 ]
-DISTANCIA_TOTAL = 2.0  # distância total entre o primeiro e o último piezo (em metros)
 
-# Conexão wifi
+DISTANCIA_ENTRE_SENSORES = 0.5  # metros
+DISTANCIA_TOTAL = DISTANCIA_ENTRE_SENSORES * (len(piesos) - 1)
+
+
+# ======= FUNÇÃO DE CONEXÃO WIFI =======
 def conectar_wifi():
     print("Conectando ao Wi-Fi...")
     wlan = network.WLAN(network.STA_IF)
@@ -62,51 +64,74 @@ def conectar_wifi():
         tentativas += 1
 
     if wlan.isconnected():
-        print("\nConectado com sucesso!")
+        print("\n✅ Conectado com sucesso!")
         print("IP do ESP32:", wlan.ifconfig()[0])
     else:
-        print("\nFalha na conexão Wi-Fi.")
+        print("\n❌ Falha na conexão Wi-Fi.")
 
-# Enviando os dados para a API
-def enviar_velocidade(velocidade):
-    """Envia a velocidade calculada para a API"""
+
+# ENVIO DE DADOS 
+def enviar_dados(velocidade, aceleracao):
     try:
-        response = urequests.post(URL, params={"sensor_id": SENSOR_ID, "velocidade": velocidade})
-        print("Dados enviados -> Velocidade:", velocidade, "km/h | Status:", response.status_code)
+        response = urequests.post(
+            URL,
+            params={
+                "sensor_id": SENSOR_ID,
+                "velocidade": round(velocidade, 2),
+                "aceleracao": round(aceleracao, 2),
+            }
+        )
+        print(f"📡 Enviado -> Velocidade: {velocidade:.2f} km/h | Aceleração: {aceleracao:.2f} m/s² | Status: {response.status_code}")
         response.close()
     except Exception as e:
         print("Erro ao enviar dados:", e)
 
-# capturando os dados dos piesos
+
+# ======= CAPTURA DOS DADOS =======
 def capturar_veiculo():
     print("Aguardando passagem de veículo...")
     while True:
         # Espera o primeiro sensor detectar
         if piesos[0].value() == 1:
-            t_inicial = time.ticks_us()
+            tempos = []
+            print("\n🚗 Veículo detectado!")
 
-            # Espera o último sensor detectar
-            while piesos[-1].value() == 0:
-                pass
-            t_final = time.ticks_us()
+            # Captura tempo de detecção de cada piezo
+            for i, piezo in enumerate(piesos):
+                while piezo.value() == 0:
+                    pass
+                tempos.append(time.ticks_us())
+                print(f"→ Sensor {i+1} acionado")
 
-            # Calcula tempo em segundos
-            tempo = (t_final - t_inicial) / 100000000
+            # Calcula intervalos de tempo entre sensores (em segundos)
+            intervalos = [(tempos[i+1] - tempos[i]) / 1_000_000 for i in range(len(tempos) - 1)]
 
-            # Calcula velocidade (m/s -> km/h)
-            if tempo > 0:
-                velocidade = DISTANCIA_TOTAL / tempo
-                velocidade_kmh = round(velocidade * 3.6, 2)
-                enviar_velocidade(velocidade_kmh)
-                print("Velocidade:", velocidade_kmh, "km/h")
+            # Calcula velocidades parciais (em m/s)
+            velocidades = [DISTANCIA_ENTRE_SENSORES / t for t in intervalos if t > 0]
 
-            # Evita múltiplas leituras seguidas
-            time.sleep(1)
+            if len(velocidades) >= 2:
+                v1 = velocidades[0]
+                v4 = velocidades[-1]
+                t_total = (tempos[-1] - tempos[0]) / 1_000_000
 
-# programa principal
+                # Velocidade média (km/h)
+                v_media_kmh = ((v1 + v4) / 2) * 3.6
+
+                # Aceleração média (m/s²)
+                aceleracao = (v4 - v1) / t_total
+
+                enviar_dados(v_media_kmh, aceleracao)
+
+                print(f"🕒 Tempo total: {t_total:.4f}s | 💨 Velocidade média: {v_media_kmh:.2f} km/h | ⚡ Aceleração: {aceleracao:.2f} m/s²")
+
+            time.sleep(2)  # Evita leituras consecutivas
+
+
+# PROGRAMA PRINCIPAL
 try:
     conectar_wifi()
     capturar_veiculo()
 except KeyboardInterrupt:
-    print("Programa interrompido.")'''
+    print("Programa interrompido.")
+'''
 

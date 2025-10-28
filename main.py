@@ -16,8 +16,8 @@ def get_db():
         db.close()
 
 @app.post("/dados/")
-def receber_dado(sensor_id: int, velocidade: float, db: Session = Depends(get_db)):
-    dado = Velocidade(sensor_id=sensor_id, velocidade=velocidade)
+def receber_dado(sensor_id: int, velocidade: float, aceleracao: float, db: Session = Depends(get_db)):
+    dado = Velocidade(sensor_id=sensor_id, velocidade=velocidade, aceleracao=aceleracao)
     db.add(dado)
     db.commit()
     db.refresh(dado)
