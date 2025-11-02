@@ -10,7 +10,7 @@ URL = "http://127.0.0.1:8000/dados/"
 while True:
      sensor_id = 1
      velocidade = round(random.uniform(30, 150), 2)
-     aceleracao = round(random.uniform(10, 80), 2)
+     aceleracao = round(random.uniform(-20, 80), 2)
 
      response = requests.post(URL, params={
          "sensor_id": sensor_id,
@@ -18,6 +18,7 @@ while True:
          "aceleracao": aceleracao
      })
 
+     print(f"📡 Enviado -> Velocidade: {velocidade:.2f} km/h | Aceleração: {aceleracao:.2f} m/s² | Status: {response.status_code}")
      print(response.json())
      time.sleep(7)  # envia a cada 7 segundos
 
@@ -32,7 +33,7 @@ import time
 import urequests
 from machine import Pin
 
-# ======= CONFIGURAÇÕES =======
+#  CONFIGURAÇÕES 
 SSID = "nome_rede"
 PASSWORD = "senha_rede"
 URL = "http://192.168.0.100:8000/dados/"
@@ -46,11 +47,11 @@ piesos = [
     Pin(19, Pin.IN)   # Piezo 4
 ]
 
-DISTANCIA_ENTRE_SENSORES = 0.5  # metros
+DISTANCIA_ENTRE_SENSORES = 0.05  # metros
 DISTANCIA_TOTAL = DISTANCIA_ENTRE_SENSORES * (len(piesos) - 1)
 
 
-# ======= FUNÇÃO DE CONEXÃO WIFI =======
+# FUNÇÃO DE CONEXÃO WIFI 
 def conectar_wifi():
     print("Conectando ao Wi-Fi...")
     wlan = network.WLAN(network.STA_IF)
@@ -87,7 +88,7 @@ def enviar_dados(velocidade, aceleracao):
         print("Erro ao enviar dados:", e)
 
 
-# ======= CAPTURA DOS DADOS =======
+#  CAPTURA DOS DADOS 
 def capturar_veiculo():
     print("Aguardando passagem de veículo...")
     while True:
@@ -112,7 +113,7 @@ def capturar_veiculo():
             if len(velocidades) >= 2:
                 v1 = velocidades[0]
                 v4 = velocidades[-1]
-                t_total = (tempos[-1] - tempos[0]) / 1_000_000
+                t_total = (tempos[-1] - tempos[0]) / 1000000
 
                 # Velocidade média (km/h)
                 v_media_kmh = ((v1 + v4) / 2) * 3.6
