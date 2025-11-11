@@ -24,34 +24,40 @@ while True:
 
 
 
-# ---- CONFIGURAÇÃO DA API
+# CONFIGURAÇÃO DA API
 #URL = "http://192.168.0.100:8000/dados/"  # IP do PC rodando a API
 
 '''
 import network
 import time
 import urequests
-from machine import Pin
+from machine import Pin, time_pulse_us
 
-#  CONFIGURAÇÕES 
+
+# CONFIGURAÇÕES DE REDE E API
+
 SSID = "nome_rede"
 PASSWORD = "senha_rede"
 URL = "http://192.168.0.100:8000/dados/"
 SENSOR_ID = 1
 
-# 4 piezos (em metros, igualmente espaçados)
-piesos = [
-    Pin(4, Pin.IN),   # Piezo 1
-    Pin(5, Pin.IN),   # Piezo 2
-    Pin(18, Pin.IN),  # Piezo 3
-    Pin(19, Pin.IN)   # Piezo 4
+
+# CONFIGURAÇÕES DOS SENSORES
+
+DISTANCIA_ENTRE_SENSORES = 0.5  # metros
+LIMIAR_DETECCAO = 50  # cm - distância abaixo da qual detecta veículo
+
+# Lista de sensores (trigger, echo)
+sensores = [
+    {"trigger": Pin(4, Pin.OUT), "echo": Pin(5, Pin.IN)},
+    {"trigger": Pin(18, Pin.OUT), "echo": Pin(19, Pin.IN)},
+    {"trigger": Pin(21, Pin.OUT), "echo": Pin(22, Pin.IN)},
+    {"trigger": Pin(23, Pin.OUT), "echo": Pin(25, Pin.IN)},
 ]
 
-DISTANCIA_ENTRE_SENSORES = 0.05  # metros
-DISTANCIA_TOTAL = DISTANCIA_ENTRE_SENSORES * (len(piesos) - 1)
 
+# CONECTAR AO WI-FI
 
-# FUNÇÃO DE CONEXÃO WIFI 
 def conectar_wifi():
     print("Conectando ao Wi-Fi...")
     wlan = network.WLAN(network.STA_IF)
@@ -71,7 +77,24 @@ def conectar_wifi():
         print("\n❌ Falha na conexão Wi-Fi.")
 
 
-# ENVIO DE DADOS 
+# MEDIÇÃO DE DISTÂNCIA (ULTRASSÔNICO)
+
+def medir_distancia(trigger, echo):
+    trigger.off()
+    time.sleep_us(2)
+    trigger.on()
+    time.sleep_us(10)
+    trigger.off()
+
+    duracao = time_pulse_us(echo, 1, 30000)  # tempo de resposta em microssegundos
+    if duracao < 0:  # falha na leitura
+        return 999
+    distancia = (duracao / 2) / 29.1  # conversão para cm
+    return distancia
+
+
+# ENVIO DE DADOS PARA A API
+
 def enviar_dados(velocidade, aceleracao):
     try:
         response = urequests.post(
@@ -85,54 +108,58 @@ def enviar_dados(velocidade, aceleracao):
         print(f"📡 Enviado -> Velocidade: {velocidade:.2f} km/h | Aceleração: {aceleracao:.2f} m/s² | Status: {response.status_code}")
         response.close()
     except Exception as e:
-        print("Erro ao enviar dados:", e)
+        print("❌ Erro ao enviar dados:", e)
 
 
-#  CAPTURA DOS DADOS 
+# CAPTURA DE VEÍCULO
+
 def capturar_veiculo():
     print("Aguardando passagem de veículo...")
+
     while True:
-        # Espera o primeiro sensor detectar
-        if piesos[0].value() == 1:
+        # Detecta o primeiro sensor
+        if medir_distancia(sensores[0]["trigger"], sensores[0]["echo"]) < LIMIAR_DETECCAO:
             tempos = []
             print("\n🚗 Veículo detectado!")
 
-            # Captura tempo de detecção de cada piezo
-            for i, piezo in enumerate(piesos):
-                while piezo.value() == 0:
-                    pass
+            # Percorre os 4 sensores
+            for i, sensor in enumerate(sensores):
+                # Espera até o veículo passar na frente do sensor
+                while medir_distancia(sensor["trigger"], sensor["echo"]) >= LIMIAR_DETECCAO:
+                    time.sleep_ms(10)
                 tempos.append(time.ticks_us())
                 print(f"→ Sensor {i+1} acionado")
 
-            # Calcula intervalos de tempo entre sensores (em segundos)
-            intervalos = [(tempos[i+1] - tempos[i]) / 1_000_000 for i in range(len(tempos) - 1)]
+                # Evita interferência entre sensores
+                time.sleep_ms(100)
 
-            # Calcula velocidades parciais (em m/s)
+            # Cálculos
+            intervalos = [(tempos[i+1] - tempos[i]) / 1_000_000 for i in range(len(tempos) - 1)]
             velocidades = [DISTANCIA_ENTRE_SENSORES / t for t in intervalos if t > 0]
 
             if len(velocidades) >= 2:
                 v1 = velocidades[0]
                 v4 = velocidades[-1]
-                t_total = (tempos[-1] - tempos[0]) / 1000000
+                t_total = (tempos[-1] - tempos[0]) / 1_000_000
 
-                # Velocidade média (km/h)
                 v_media_kmh = ((v1 + v4) / 2) * 3.6
-
-                # Aceleração média (m/s²)
                 aceleracao = (v4 - v1) / t_total
 
                 enviar_dados(v_media_kmh, aceleracao)
 
                 print(f"🕒 Tempo total: {t_total:.4f}s | 💨 Velocidade média: {v_media_kmh:.2f} km/h | ⚡ Aceleração: {aceleracao:.2f} m/s²")
 
-            time.sleep(2)  # Evita leituras consecutivas
+            print("\n🔄 Aguardando novo veículo...\n")
+            time.sleep(2)
 
 
-# PROGRAMA PRINCIPAL
+# EXECUÇÃO PRINCIPAL
+
 try:
     conectar_wifi()
     capturar_veiculo()
 except KeyboardInterrupt:
-    print("Programa interrompido.")
+    print("\n🛑 Programa interrompido.")
+
 '''
 

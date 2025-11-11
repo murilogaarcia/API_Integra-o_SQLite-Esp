@@ -1,6 +1,10 @@
 pip install pyodbc
 pip install aiosqlite
 pip install fastapi uvicorn sqlalchemy pydantic
+pip install streamlit plotly pandas
+pip install requests
+
+
 
 
 /*http://127.0.0.1:8000/docs */
@@ -28,7 +32,7 @@ http://127.0.0.1:8000/docs
 Rota raiz:
 http://127.0.0.1:8000/
 
-Observação: http://127.0.0.1:8000/dados/ funciona apenas via GET ou POST conforme definido.
+Observação: http://127.0.0.1:8000/dados/ funciona via GET ou POST.
 
 Simulando sensores (simulador.py)
 import requests
@@ -49,7 +53,7 @@ while True:
     print(f"Sensor {sensor_id} registrou {velocidade} km/h → Resposta da API:", response.json())
     time.sleep(2)
 
-🔹 Executando o simulador
+Executando o simulador
 
 Em outro terminal mantendo a API rodando:
 
