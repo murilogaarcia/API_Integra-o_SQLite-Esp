@@ -1,6 +1,6 @@
 🚗 Projeto de Monitoramento de Velocidades Veiculares
 
-Sistema completo que coleta, armazena e exibe em tempo real as velocidades capturadas por sensores (piezos).
+Sistema completo que coleta, armazena e exibe em tempo real as velocidades capturadas por sensores (ultrassonicos).
 O projeto integra FastAPI (backend), SQLite (banco de dados) e Streamlit (painel visual), criando uma solução simples, funcional e didática para monitoramento de tráfego.
 
 🧠 Visão Geral
@@ -21,9 +21,9 @@ Lê os dados do banco e exibe gráficos e métricas em tempo real.
 
 Mostra a evolução das velocidades, médias, máximas e mínimas.
 
-Simulador (ESP32 e piezos)
+Simulador (ESP32 e ultra)
 
-Gera reais dos piezos (via sensores piezo).
+Gera reais dos piezos (via sensores ultrassonicos).
 
 Envia as velocidades para a API.
 
